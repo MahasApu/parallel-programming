@@ -66,6 +66,11 @@ public class SolutionThread extends UserThread {
 
         tryCompile(id, methodID, hotness);
 
+        // Ensure if hotness has reached L1 or L2 limit - at least one execution uses JIT-compiled code
+        if (hotness == L1_LIMIT || hotness == L2_LIMIT) {
+            waitForCompilation(methodID);
+        }
+
         return execute(id, method);
     }
 
@@ -79,6 +84,20 @@ public class SolutionThread extends UserThread {
     private ExecutionResult execute(MethodID id, CompiledMethod method) {
         return (!compilationCache.isCompiled(id, method)) ? exec.interpret(id) : exec.execute(method);
     }
+
+
+    /**
+     * This function waits for the compilation of the method to finish
+     * (thread yields until the compilation is in progress).
+     *
+     * @param methodID ID of the method
+     */
+    private void waitForCompilation(long methodID) {
+        while (compilationInProgress.getOrDefault(methodID, new AtomicBoolean(false)).get()) {
+            Thread.yield();
+        }
+    }
+
 
     /**
      * This method looks at hotness and decides if we need to compile method and to which level.
