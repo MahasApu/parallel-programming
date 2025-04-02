@@ -20,7 +20,9 @@ import static org.nsu.syspro.parprog.solution.CompilationLevel.*;
 public class SolutionThread extends UserThread {
 
     private static final long L1_LIMIT = 5000;
-    private static final long L2_LIMIT = 10000;
+    private static final long L2_LIMIT = 9000;
+    private static final long COMPILATION_DELAY = 500;
+
 
     // Thread pool for running compilation tasks
     private static final ExecutorService compilationPool = Executors.newCachedThreadPool();
@@ -61,16 +63,16 @@ public class SolutionThread extends UserThread {
     @Override
     public ExecutionResult executeMethod(MethodID id) {
         final long methodID = id.id();
-        final CompiledMethod method = compilationCache.getCompiledMethod(methodID);
         final long hotness = increaseHotness(id);
+        CompiledMethod method = compilationCache.getCompiledMethod(methodID);
 
         tryCompile(id, methodID, hotness);
 
         // Ensure if hotness has reached L1 or L2 limit - at least one execution uses JIT-compiled code
-        if (hotness == L1_LIMIT || hotness == L2_LIMIT) {
+        if (hotness == L1_LIMIT + COMPILATION_DELAY || hotness == L2_LIMIT + COMPILATION_DELAY) {
             waitForCompilation(methodID);
+            method = compilationCache.getCompiledMethod(methodID);
         }
-
         return execute(id, method);
     }
 
